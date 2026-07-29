@@ -41,6 +41,9 @@ class BoxFlood:
     
         # Equation 8
         dP_dt = chi*(Q_in_func(t) - r_hat * A_hat**alpha * P_hat**(beta-1) - pi*dA_dt)
+
+        self.dA_dt = dA_dt
+        self.dP_dt = dP_dt
     
         return dA_dt, dP_dt
 
