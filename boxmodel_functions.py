@@ -1,5 +1,8 @@
 # Helper functions for the box model 
 
+from scipy.integrate import solve_ivp
+import numpy as np
+
 
 def rhs(t, state, Q_in_func, k_hat, gamma, psi, r_hat, chi, pi, alpha, beta, n=3):
 
@@ -26,17 +29,19 @@ def rhs(t, state, Q_in_func, k_hat, gamma, psi, r_hat, chi, pi, alpha, beta, n=3
     return dA_dt, dP_dt
 
     
-def solve(t_span, t_eval, Q_in_func):
-    params = dict(
-        Q_in_func=Q_in_func,
-        k_hat=k_hat, gamma=gamma, psi=Psi, r_hat=r_hat,
-        chi=Chi, pi=Pi, alpha=alpha, beta=beta, n=3
-    )
+def solve(t_span, t_eval, Q_in_func, ICs, params):
+
+    from scipy.integrate import solve_ivp
+    #params = dict(
+        #Q_in_func=Q_in_func,
+        #k_hat=k_hat, gamma=gamma, psi=Psi, r_hat=r_hat,
+        #chi=Chi, pi=Pi, alpha=alpha, beta=beta, n=3
+    #)
     solution = solve_ivp(
         fun = lambda t, y: rhs(t, y, **params),  # y = state
         t_span = t_span,
         t_eval = t_eval,
-        y0 = [A0_hat, P0_hat],
+        y0 = ICs,#[A0_hat, P0_hat],
         method = "RK45", # Runge Kutta
         max_step=0.05,
         rtol=1e-6,
@@ -46,8 +51,8 @@ def solve(t_span, t_eval, Q_in_func):
     # Calculate values
     A_hat = solution.y[0]
     P_hat = np.clip(solution.y[1], 0.0, 1.0)
-    Q_out = r_hat * A_hat**alpha * P_hat**(beta-1)
-    cavitation = k_hat/(1-P_hat)**gamma
+    Q_out = params["r_hat"] * A_hat**params["alpha"] * P_hat**(params["beta"]-1)
+    cavitation = params["k_hat"]/(1-P_hat)**params["gamma"]
     #print(solution.status)
 
     
@@ -59,6 +64,8 @@ def make_synthetic_Q_in(t_flood, flood_magnitude, flood_width, floodtype):
     flood_magnitude (float): maximum magnitude of the rising part of the flood
     flood_width (float): duration of flood
     floodtype (str): "norm" = flood takes sinusoidal shape, "long" = long leadup flood
+
+    returns:
     """
     seasonal = 0.5 # Background value
     def Q_in_normal(t):
